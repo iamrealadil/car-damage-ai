@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Car Damage Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+<div class="bg-white shadow-xl rounded-xl p-8 w-full max-w-xl">
+
+    <h1 class="text-3xl font-bold text-center mb-6">
+        🚗 AI Damage Detection
+    </h1>
+
+    <!-- Upload -->
+    <div class="mb-4">
+        <input type="file" id="fileInput"
+               class="block w-full text-sm border rounded p-2">
+    </div>
+
+    <!-- Preview -->
+    <img id="preview"
+         class="hidden w-full h-60 object-contain mb-4 rounded"/>
+
+    <!-- Button -->
+    <button onclick="analyze()"
+            class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+        Analyze Image
+    </button>
+
+    <!-- Loader -->
+    <div id="loading"
+         class="hidden text-center mt-4 text-blue-600 font-semibold">
+        ⏳ Processing...
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="mt-6 hidden">
+
+        <h2 class="font-bold text-lg mb-3">Results</h2>
+
+        <div class="bg-gray-50 p-3 rounded mb-3">
+            <p><b>Damages:</b> <span id="count"></span></p>
+            <p><b>Estimated Cost:</b> £<span id="cost"></span></p>
+        </div>
+
+        <div id="details"
+             class="text-sm text-gray-700 space-y-2"></div>
+    </div>
+
+</div>
+
+
+<script>
+
+const input = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+
+
+// Preview image
+input.addEventListener("change", () => {
+
+    const file = input.files[0];
+
+    if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove("hidden");
+    }
+});
+
+
+
+async function analyze() {
+
+    const file = input.files[0];
+
+    if (!file) {
+        alert("Select an image first");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    document.getElementById("loading").classList.remove("hidden");
+    document.getElementById("results").classList.add("hidden");
+
+    try {
+
+        const res = await fetch("http://localhost:8000/analyze", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        console.log(data); // 🔎 Debug — open browser console if needed
+
+        document.getElementById("loading").classList.add("hidden");
+        document.getElementById("results").classList.remove("hidden");
+
+        // Count + Total Cost
+        document.getElementById("count").innerText =
+            data.damage_report.length;
+
+        document.getElementById("cost").innerText =
+            data.total_estimated_cost;
+
+        let html = "";
+
+        data.damage_report.forEach((d, i) => {
+
+            html += `
+                <div class="border p-3 rounded bg-white shadow-sm mb-3">
+                    <b>Damage ${i + 1}</b><br>
+                    Type: ${d.damage_type}<br>
+                    Severity: ${d.severity}<br>
+                    Estimated Cost: £${d.estimated_cost}
+                </div>
+            `;
+        });
+
+        document.getElementById("details").innerHTML = html;
+
+    } catch (error) {
+
+        document.getElementById("loading").classList.add("hidden");
+        alert("Error connecting to server.");
+        console.error(error);
+    }
+}
+
+</script>
+
+</body>
+</html>
